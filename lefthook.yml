@@ -1,0 +1,6 @@
+pre-commit:
+  parallel: true
+  commands:
+    rubocop:
+      glob: "{Gemfile,*.rb,*.rake,*.jbuilder}"
+      run: bundle exec rubocop -A --force-exclusion {staged_files} -c .rubocop.yml && git add {staged_files}
