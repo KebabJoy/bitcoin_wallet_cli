@@ -8,7 +8,7 @@ RSpec.describe Wallet::TransactionBuilder do
   let(:tx_repo) { instance_double(Infrastructure::TransactionRepository) }
   let(:utxo_repo) { instance_double(Infrastructure::UtxoRepository) }
   let(:key_pair) { Wallet::Domain::KeyPair.new(Bitcoin::Key.generate) } # I don't wanna stub a DTO
-  let(:addressee) { Bitcoin::Key.generate.to_p2pkh }
+  let(:addressee) { Bitcoin::Key.generate.to_p2wpkh }
 
   def utxo(value)
     Infrastructure::UTXO.new(

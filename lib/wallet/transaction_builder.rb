@@ -60,14 +60,17 @@ module Wallet
       tx.out << Bitcoin::TxOut.new(value: amount_sats, script_pubkey: Bitcoin::Script.parse_from_addr(dest_address))
       tx.out << Bitcoin::TxOut.new(value: change_sats, script_pubkey: Bitcoin::Script.parse_from_addr(key_pair.address)) if change_sats.positive?
 
-      pk_script = Bitcoin::Script.to_p2pkh(key_pair.key.hash160)
-      relevant_utxo.each_index do |idx|
-        sig_hash = tx.sighash_for_input(idx, pk_script)
+      pk_script = Bitcoin::Script.to_p2wpkh(key_pair.key.hash160)
+      relevant_utxo.each_with_index do |utxo, idx|
+        # sig_hash = tx.sighash_for_input(idx, pk_script)
+        sig_hash = tx.sighash_for_input(idx, pk_script, amount: utxo['value'], sig_version: :witness_v0)
         signature = key_pair.key.sign(sig_hash) + [Bitcoin::SIGHASH_TYPE[:all]].pack('C')
 
         # signature for legacy tx according to https://github.com/chaintope/bitcoinrb/wiki/Transaction
-        tx.in[idx].script_sig << signature
-        tx.in[idx].script_sig << key_pair.key.pubkey.htb
+        # tx.in[idx].script_sig << signature
+        # tx.in[idx].script_sig << key_pair.key.pubkey.htb
+        tx.in[0].script_witness.stack << signature
+        tx.in[0].script_witness.stack << key_pair.key.pubkey.htb
       end
 
       tx

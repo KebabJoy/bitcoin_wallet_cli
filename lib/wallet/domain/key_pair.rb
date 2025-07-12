@@ -12,7 +12,7 @@ module Wallet
       end
 
       def address
-        key.to_p2pkh.to_s
+        key.to_p2wpkh.to_s
       end
 
       def to_h
