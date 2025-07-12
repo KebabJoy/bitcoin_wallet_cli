@@ -9,7 +9,7 @@ gem 'faraday', '~> 2.13.2'
 
 group :development, :test do
   gem 'pry'
+  gem 'rspec'
   gem 'rubocop', '~> 1.78.0', require: false
   gem 'rubocop-rspec', '~> 3.6.0', require: false
-  gem 'rspec'
 end

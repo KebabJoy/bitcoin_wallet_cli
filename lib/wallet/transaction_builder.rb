@@ -57,8 +57,8 @@ module Wallet
         tx.in << Bitcoin::TxIn.new(out_point:)
       end
 
-      tx.out << Bitcoin::TxOut.new(value: amount_sats, script_pubkey: dest_address)
-      tx.out << Bitcoin::TxOut.new(value: change_sats, script_pubkey: key_pair.address) if change_sats.positive?
+      tx.out << Bitcoin::TxOut.new(value: amount_sats, script_pubkey: Bitcoin::Script.parse_from_addr(dest_address))
+      tx.out << Bitcoin::TxOut.new(value: change_sats, script_pubkey: Bitcoin::Script.parse_from_addr(key_pair.address)) if change_sats.positive?
 
       pk_script = Bitcoin::Script.to_p2pkh(key_pair.key.hash160)
       relevant_utxo.each_index do |idx|

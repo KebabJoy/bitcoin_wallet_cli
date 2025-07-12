@@ -11,7 +11,7 @@ module Infrastructure
     # @param hex [String] raw hex-encoded transaction
     # @return [String] transaction ID (txid)
     def broadcast_tx(hex)
-      client.post('/tx', hex)
+      data_gateway.post('tx', hex)
     end
 
     # Retrieves transaction details by txid
@@ -19,7 +19,7 @@ module Infrastructure
     # @param txid [String]
     # @return [Hash]
     def get_tx(txid)
-      client.get("/tx/#{txid}")
+      data_gateway.get("tx/#{txid}")
     end
 
     private

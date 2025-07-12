@@ -15,7 +15,7 @@ module Infrastructure
       response = @connection.get(path)
       raise "HTTP #{response.status} – #{response.body}" unless response.success?
 
-      JSON.parse(response.body)
+      JSON.parse(response.body, symbolize_names: true)
     end
 
     def post(path, body)

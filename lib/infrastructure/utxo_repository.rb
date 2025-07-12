@@ -23,10 +23,10 @@ module Infrastructure
 
       json.map do |h|
         UTXO.new(
-          txid: h['txid'],
-          vout: h['vout'],
-          value: h['value'],
-          confirmed: h['status']['confirmed']
+          txid: h[:txid],
+          vout: h[:vout],
+          value: h[:value],
+          confirmed: h[:status][:confirmed]
         )
       end
     end

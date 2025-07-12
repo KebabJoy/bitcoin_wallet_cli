@@ -2,17 +2,11 @@
 # frozen_string_literal: true
 
 require 'pry'
-require 'bitcoin'
-require_relative 'lib/wallet/domain/key_pair'
-require_relative 'lib/wallet/file_key_repository'
-require_relative 'lib/wallet/transaction_builder'
-require_relative 'lib/infrastructure/mempool_client'
-require_relative 'lib/infrastructure/utxo_repository'
-require_relative 'lib/infrastructure/transaction_repository'
+require_relative 'lib/bitcoin_wallet'
 
 Bitcoin.chain_params = :signet
 
-COMMANDS = %w[generate balance send].freeze
+COMMANDS = %w[generate balance transfer].freeze
 
 cmd = ARGV.shift
 unless COMMANDS.include?(cmd)
@@ -20,7 +14,7 @@ unless COMMANDS.include?(cmd)
     Usage:
       ruby wallet.rb generate
       ruby wallet.rb balance
-      ruby wallet.rb send DEST_ADDRESS AMOUNT_SATS
+      ruby wallet.rb transfer DEST_ADDRESS AMOUNT_SATS
   USAGE
 end
 
@@ -29,7 +23,7 @@ key_pair = key_repository.load
 
 case cmd
 when 'generate'
-  key_pair = Domain::KeyPair.new(Bitcoin::Key.generate)
+  key_pair = Wallet::Domain::KeyPair.new(Bitcoin::Key.generate)
   key_repository.save(key_pair)
 
   puts "Address: #{key_pair.address}"
@@ -37,7 +31,7 @@ when 'generate'
 when 'balance'
   balance = Infrastructure::UtxoRepository.new.confirmed_balance(key_pair.address)
   puts "Balance for #{key_pair.address}: #{balance} sats"
-when 'send'
+when 'transfer'
   dest = ARGV.shift
   amount = ARGV.shift.to_i
   abort 'Need DEST_ADDRESS and AMOUNT_SATS' if dest.nil? || amount.zero?
