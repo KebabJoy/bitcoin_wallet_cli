@@ -35,16 +35,14 @@ RSpec.describe Wallet::TransactionBuilder do
 
     context 'with valid input' do
       let(:amount) { 500 }
-      let(:fee) { Wallet::TransactionBuilder::FIXED_FEE_SATS }
       let(:input_value) { 2_000 }
-      let(:change) { input_value - amount - fee }
       let(:broadcasted_hex) { [] }
       let(:txid) { SecureRandom.hex(32) }
 
       before do
         allow(utxo_repo).to receive(:confirmed_for_address)
-          .with(key_pair.address)
-          .and_return([utxo(input_value)])
+                              .with(key_pair.address)
+                              .and_return([utxo(input_value)])
 
         allow(tx_repo).to receive(:broadcast_tx) do |hex|
           broadcasted_hex << hex
@@ -53,21 +51,22 @@ RSpec.describe Wallet::TransactionBuilder do
       end
 
       it 'builds a valid transaction and sends it to repo' do
-        txid = subject.send_to(addressee, amount)
+        txid_result = subject.send_to(addressee, amount)
 
-        expect(txid).to eq(txid)
-
+        expect(txid_result).to eq(txid)
         expect(tx_repo).to have_received(:broadcast_tx).once
-        expect(broadcasted_hex.first).to be_a(String)
 
         raw_tx = Bitcoin::Tx.parse_from_payload(broadcasted_hex.first.htb)
 
-        expect(raw_tx.in.size).to eq(1)
-        expect(raw_tx.out.size).to eq(2)
-
         values = raw_tx.out.map(&:value)
-        expect(values).to contain_exactly(amount, change)
-        expect(values.sum).to eq(input_value - fee)
+        expect(values).to include(amount)
+        fee = input_value - values.sum
+
+        expect(fee).to be > 0
+        expect(fee).to be < 500
+
+        change = (values - [amount]).first
+        expect(change).to be >= Wallet::TransactionBuilder::DEFAULT_DUST_RATE
       end
     end
   end

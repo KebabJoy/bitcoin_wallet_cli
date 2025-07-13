@@ -3,7 +3,13 @@
 module Wallet
   # Bitcoin transactions builder
   class TransactionBuilder
-    FIXED_FEE_SATS = 1_000 # 0.00001BTC
+    DUMMY_BINARY_VALUE = SecureRandom.random_bytes(32)
+    DUMMY_KEY_HASH = SecureRandom.random_bytes(20)
+    DUMMY_P2WPKH_SCRIPT = Bitcoin::Script.to_p2wpkh(DUMMY_KEY_HASH)
+    SAFETY_MARGIN_SATS = 2
+    DUMMY_EMISSION_VALUE = 17
+    DEFAULT_FEE_RATE = 1
+    DEFAULT_DUST_RATE  = 546
 
     # @param key_pair [Wallet::KeyManager] provides key & address
     # @param utxo_repo [Infrastructure::UtxoRepository]
@@ -21,8 +27,8 @@ module Wallet
     # @return [String] txid
     def send_to(dest_address, amount_sats)
       utxos = utxo_repo.confirmed_for_address(key_pair.address)
-      relevant_utxo, change = select_utxos(utxos, amount_sats + FIXED_FEE_SATS)
-      raise 'Not enough money👎👎👎' unless relevant_utxo
+      relevant_utxo, change = select_utxos(utxos, amount_sats)
+      raise 'Not enough money👎👎👎' if relevant_utxo.nil?
 
       tx = build_tx(relevant_utxo, dest_address, amount_sats, change)
       tx_repo.broadcast_tx(tx.to_hex.to_s)
@@ -32,19 +38,42 @@ module Wallet
 
     attr_reader :key_pair, :utxo_repo, :tx_repo
 
-    # @return [Array<(Array<Wallet::UTXO>, Integer), nil>]
-    def select_utxos(utxos, target)
+    # @return [Array<(Array<Infrastructure::UTXO>, Integer), nil>]
+    def select_utxos(utxos, amount_sats)
+      selected = []
       total = 0
-      chosen = []
-      utxos.sort_by(&:value).each do |u|
-        chosen << u
-        total += u.value
-        break if total >= target
+
+      utxos.sort_by(&:value).each do |utxo|
+        selected << utxo
+        total += utxo.value
+
+        est_fee = estimate_fee(selected.size, 2)
+        next unless total >= amount_sats + est_fee
+
+        change = total - amount_sats - est_fee
+        change = 0 if change < DEFAULT_DUST_RATE
+
+        return [selected, change]
       end
 
-      return nil unless total >= target
+      [nil, nil]
+    end
 
-      [chosen, total - target]
+    def estimate_fee(input_count, output_count)
+      tx = Bitcoin::Tx.new
+
+      input_count.times do
+        tx.in << Bitcoin::TxIn.new(out_point: Bitcoin::OutPoint.new(DUMMY_BINARY_VALUE, 0))
+      end
+
+      output_count.times do
+        tx.out << Bitcoin::TxOut.new(value: DUMMY_EMISSION_VALUE, script_pubkey: DUMMY_P2WPKH_SCRIPT)
+      end
+
+      dummy_sig = ['00' * 72, '00' * 33]
+      tx.in.each { |i| i.script_witness.stack.replace(dummy_sig) }
+
+      (tx.vsize * DEFAULT_FEE_RATE) + SAFETY_MARGIN_SATS
     end
 
     # @return [Bitcoin::Tx]
